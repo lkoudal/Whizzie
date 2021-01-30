@@ -1,3 +1,10 @@
+# Whizzie for Security Ninja
+
+Customized solution for Security Ninja Onboarding process. Based on Whizzie. Original library was focused for theme use, import files and includes TGMPA. These features have been removed to focus on plugin onboarding.
+
+What follows is the original readme.
+
+
 # Whizzie
 A more WordPress-y theme setup wizard
 
