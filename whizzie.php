@@ -9,7 +9,7 @@
 
 class Whizzie {
 	
-	protected $version = '1.1.0';
+	protected $version = '1.2.0';
 	
 	/** @var string Current theme name, used as namespace in actions. */
 	protected $theme_name = '';
@@ -28,30 +28,6 @@ class Whizzie {
 	 * @var string
 	 */
 	protected $plugin_url = '';
-	
-	/**
-	 * TGMPA instance storage
-	 *
-	 * @var object
-	 */
-	protected $tgmpa_instance;
-	
-	/**
-	 * TGMPA Menu slug
-	 *
-	 * @var string
-	 */
-	protected $tgmpa_menu_slug = 'tgmpa-install-plugins';
-	
-	/**
-	 * TGMPA Menu url
-	 *
-	 * @var string
-	 */
-	protected $tgmpa_url = 'themes.php?page=tgmpa-install-plugins';
-	
-	// Where to find the widget.wie file
-	protected $widget_file_url = '';
 			
 	/**
 	 * Constructor
@@ -69,11 +45,7 @@ class Whizzie {
 	 * @param $config	Our config parameters
 	 */
 	public function set_vars( $config ) {
-		
-		require_once trailingslashit( WHIZZIE_DIR ) . 'tgmpa/class-tgm-plugin-activation.php';
-		require_once trailingslashit( WHIZZIE_DIR ) . 'tgmpa/required-plugins.php';
-		require_once trailingslashit( WHIZZIE_DIR ) . 'classes/class-whizzie-widget-importer.php';
-		
+			
 		if( isset( $config['page_slug'] ) ) {
 			$this->page_slug = esc_attr( $config['page_slug'] );
 		}
@@ -93,8 +65,6 @@ class Whizzie {
 		$this->page_slug = apply_filters( $this->theme_name . '_theme_setup_wizard_page_slug', $this->theme_name . '-setup' );
 		$this->parent_slug = apply_filters( $this->theme_name . '_theme_setup_wizard_parent_slug', '' );
 		
-		$this->widget_file_url = trailingslashit( WHIZZIE_DIR ) . 'content/widgets.wie';
-		
 	}
 	
 	/**
@@ -102,33 +72,25 @@ class Whizzie {
 	 * @since 1.0.0
 	 */	
 	public function init() {
-		
+		// @todo
 		add_action( 'after_switch_theme', array( $this, 'redirect_to_wizard' ) );
-		if ( class_exists( 'TGM_Plugin_Activation' ) && isset( $GLOBALS['tgmpa'] ) ) {
-			add_action( 'init', array( $this, 'get_tgmpa_instance' ), 30 );
-			add_action( 'init', array( $this, 'set_tgmpa_url' ), 40 );
-		}
+
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'admin_menu', array( $this, 'menu_page' ) );
 		add_action( 'admin_init', array( $this, 'get_plugins' ), 30 );
-		add_filter( 'tgmpa_load', array( $this, 'tgmpa_load' ), 10, 1 );
 		add_action( 'wp_ajax_setup_plugins', array( $this, 'setup_plugins' ) );
 		add_action( 'wp_ajax_setup_widgets', array( $this, 'setup_widgets' ) );
 		
-	//	add_action( 'init', array( $this, 'setup_widgets') );
-	//	$this->setup_widgets();
-	//	$widgets = get_option( 'sidebars_widgets' );
-	//	print_r( $widgets );
 	}
 	
 	public function redirect_to_wizard() {
-		global $pagenow;
+		global $pagenow; //@todo
 		if( is_admin() && 'themes.php' == $pagenow && isset( $_GET['activated'] ) && current_user_can( 'manage_options' ) ) {
 			wp_redirect( admin_url( 'themes.php?page=' . esc_attr( $this->page_slug ) ) );
 		}
 	}
 	
-	public function enqueue_scripts() {
+	public function enqueue_scripts() {//@todo
 		wp_enqueue_style( 'whizzie-style', $this->plugin_url . 'assets/css/whizzie-admin-style.css', array(), time() );
 		wp_register_script( 'whizzie', $this->plugin_url . 'assets/js/whizzie.js', array( 'jquery' ), time() );
 		wp_localize_script( 
@@ -154,28 +116,7 @@ class Whizzie {
 		return is_admin() || current_user_can( 'install_themes' );
 	}
 			
-	/**
-	 * Get configured TGMPA instance
-	 *
-	 * @access public
-	 * @since 1.1.2
-	 */
-	public function get_tgmpa_instance() {
-		$this->tgmpa_instance = call_user_func( array( get_class( $GLOBALS['tgmpa'] ), 'get_instance' ) );
-	}
-	
-	/**
-	 * Update $tgmpa_menu_slug and $tgmpa_parent_slug from TGMPA instance
-	 *
-	 * @access public
-	 * @since 1.1.2
-	 */
-	public function set_tgmpa_url() {
-		$this->tgmpa_menu_slug = ( property_exists( $this->tgmpa_instance, 'menu' ) ) ? $this->tgmpa_instance->menu : $this->tgmpa_menu_slug;
-		$this->tgmpa_menu_slug = apply_filters( $this->theme_name . '_theme_setup_wizard_tgmpa_menu_slug', $this->tgmpa_menu_slug );
-		$tgmpa_parent_slug = ( property_exists( $this->tgmpa_instance, 'parent_slug' ) && $this->tgmpa_instance->parent_slug !== 'themes.php' ) ? 'admin.php' : 'themes.php';
-		$this->tgmpa_url = apply_filters( $this->theme_name . '_theme_setup_wizard_tgmpa_url', $tgmpa_parent_slug . '?page=' . $this->tgmpa_menu_slug );
-	}
+
 	
 	/**
 	 * Make a modal screen for the wizard
@@ -188,11 +129,7 @@ class Whizzie {
 	 * Make an interface for the wizard
 	 */
 	public function wizard_page() { 
-		tgmpa_load_bulk_installer();
-		// install plugins with TGM.
-		if ( ! class_exists( 'TGM_Plugin_Activation' ) || ! isset( $GLOBALS['tgmpa'] ) ) {
-			die( 'Failed to find TGM' );
-		}
+
 		$url = wp_nonce_url( add_query_arg( array( 'plugins' => 'go' ) ), 'whizzie-setup' );
 		
 		// copied from TGM
@@ -474,12 +411,12 @@ class Whizzie {
 		foreach ( $plugins['activate'] as $slug => $plugin ) {
 			if ( $_POST['slug'] == $slug ) {
 				$json = array(
-					'url'           => admin_url( $this->tgmpa_url ),
+					'url'           => admin_url( 'SDSDS' ),
 					'plugin'        => array( $slug ),
-					'tgmpa-page'    => $this->tgmpa_menu_slug,
+					'tgmpa-page'    => 'sdsds',
 					'plugin_status' => 'all',
 					'_wpnonce'      => wp_create_nonce( 'bulk-plugins' ),
-					'action'        => 'tgmpa-bulk-activate',
+					'action'        => 'tgmpa-bulk-activate',//@todo
 					'action2'       => - 1,
 					'message'       => esc_html__( 'Activating Plugin' ),
 				);
